@@ -2,9 +2,130 @@
 title: "Giant kelp settlement scoring"
 author: "Sophia Cabral"
 date: "2026-01-29"
-output: html_document
+output: 
+prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+
+```
+
+```{r graphing size in small experiment, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("exp2.csv")
+
+data$Temperature <- as.factor(data$Temperature)
+data$Day <- as.factor(data$Day)
+
+filtdata <- data %>%
+  group_by(Temperature, Day) 
+  
+temperature_colors <- c(
+  "13" = "#1385F6",  
+  "16" = "green",
+  "18" = "orange",
+  "21" = "#F10000"
+)
+  
+
+experiment_2 <- ggplot(filtdata, aes(x = Day, y = Area)) +
+  geom_boxplot(aes(fill = Temperature), width = 0.6, outlier.shape = 16, outlier.color = "black", outlier.size = 1.5, alpha = 1) +  
+  labs(y = expression(Area~(microns^2)), x = "Day Post Release", fill = expression(Temperature~(degree~C))) +
+  scale_fill_manual(values = temperature_colors) +
+  scale_y_log10(limits = c(10, 2700)) +  # Change to log scale
+   theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = c(0.13, 0.82),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+print(experiment_2)
+
+#ggsave("Experiment 2 Germling Size.jpg", plot = experiment_2, width = 7, height = 5, units = "in")
+
+data <- read.csv("exp2.csv")
+
+data$Temperature <- as.factor(data$Temperature)
+data$Day <- as.factor(data$Day)
+
+filtdata <- data %>%
+  filter(Day %in% c("2", "5")) %>%
+  group_by(Temperature, Day) 
+
+  
+temperature_colors <- c(
+  "13" = "#1385F6",  
+  "16" = "green",
+  "18" = "orange",
+  "21" = "#F10000"
+)
+  
+
+experiment_2_day2_5 <- ggplot(filtdata, aes(x = Day, y = Area)) +
+  geom_boxplot(aes(fill = Temperature), width = 0.6, outlier.shape = 16, outlier.color = "black", outlier.size = 1.5, alpha = 1) +  
+  labs(y = expression(Area~(microns^2)), x = "Day Post Release", fill = expression(Temperature~(degree~C))) +
+  scale_fill_manual(values = temperature_colors) +
+  scale_y_continuous(limits = c(0, 150)) +
+  ggtitle("Size Over Time") + 
+   theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 15, margin = margin(b = 20)),
+    legend.position = c(0.13, 0.77),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+print(experiment_2_day2_5)
+
+#ggsave("Experiment 2 Germling Size Days 2 & 5.jpg", plot = experiment_2_day2_5, width = 7, height = 5, units = "in")
+```
+
+```{r combining 2024 scoring data, include=FALSE}
+
+data1 <- read.csv("exp5.csv")
+scoringdata1 <- data1 %>% mutate(Temperature = factor(Temperature))
+
+data2 <- read.csv("exp 8 scoring.csv")
+scoringdata2 <- data2 %>% mutate(Temperature = factor(Temperature))
+
+scoringdata1 <- scoringdata1 %>% mutate(Experiment = "August")
+scoringdata2 <- scoringdata2 %>% mutate(Experiment = "October")
+
+combined_data <- bind_rows(scoringdata1, scoringdata2)
+
+
+temperature_colors <- rep("gray", length(unique(combined_data$Temperature)))
+
+
+combined_plot2 <- ggplot(combined_data, aes(x = Temperature, y = Germ, fill = Experiment)) +
+  geom_boxplot(width = 0.6, outlier.shape = NA, alpha = 1) +
+  scale_fill_manual(values = c("August" = "blue", "October" = "orange")) +  # Different colors for each experiment
+  labs(y = "Germination (%)", x = "Temperature (°C)") +
+  scale_y_continuous(limits = c(0, 100)) +
+  theme(panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"),
+        axis.line = element_line(colour = "black"),
+        panel.grid.major = element_line(color = "gray", linewidth = 0.5))
+
+print(combined_plot2)
+
+#ggsave("Aug & Oct scoring combined.jpg", plot = combined_plot2, width = 6, height = 4, units = "in")
 ```
