@@ -1,0 +1,572 @@
+---
+title: "Blade morphology"
+author: "Sophia Cabral"
+date: "2026-01-29"
+output: 
+prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(RColorBrewer)
+library(cowplot)
+library(dplyr)
+
+```
+
+```{r day 19 manual area size, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("bladesize.csv")
+
+data$release_temp <- as.factor(data$release_temp)
+data$table_temp <- as.factor(data$table_temp)
+
+treatment_colors <- c(
+  "recovery" = "#638DE8",
+  "control" = "#FF6849"
+)
+
+kelpblade <- ggplot(data, aes(x = factor(release_temp), y = area)) +
+  geom_boxplot(
+    aes(fill = treatment),
+    width = 0.6,
+    outlier.shape = 16,
+    outlier.color = "black",
+    outlier.size = 1.5,
+    alpha = 1
+  ) +
+  scale_fill_manual(values = treatment_colors) +
+  labs(
+    y = expression(Area~(mm^2)),
+    x = "Release Temperature (°C)",
+    fill = "Temperature Treatment"
+  ) +
+  ggtitle("Juvenile Sporophyte Size") +
+  theme_bw(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 15)
+  )
+
+print(kelpblade)
+
+#ggsave("bladearea.jpg", plot = kelpblade, width = 7, height = 5, units = "in")
+
+
+bladelength <- ggplot(data, aes(x = factor(release_temp), y = length)) +
+  geom_boxplot(
+    aes(fill = treatment),
+    width = 0.6,
+    outlier.shape = 16,
+    outlier.color = "black",
+    outlier.size = 1.5,
+    alpha = 1
+  ) +
+  scale_fill_manual(values = treatment_colors) +
+  labs(
+    y = expression(length~(m)),
+    x = "Release Temperature (°C)",
+    fill = "Temperature Treatment"
+  ) +
+  ggtitle("Juvenile Sporophyte Size") +
+  theme_bw(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 15)
+  )
+
+print(bladelength)
+
+day19_blade <- plot_grid(kelpblade, bladelength, labels = c('A', 'B'), label_size = 12)
+day19_blade
+
+#ggsave("day 19 blade.jpg", plot = day19_blade, width = 15, height = 5, units = "in")
+
+```
+
+```{r day 26 sporo counting across FOVs, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("bladefov.csv")
+
+head(data)
+
+blade_counts <- data %>%
+  filter(dpr == "26") %>%
+  filter(treatment %in% c("control", "recovery") ) 
+
+blade_counts_1 <- blade_counts %>%
+  group_by(release_temp, table_temp, treatment) %>%
+  summarise(n = sum(juvenile.sporo), .groups = "drop")
+
+treatment_colors <- c(
+  "recovery" = "#638DE8",
+  "control" = "#FF6849"
+)
+
+
+day26_bladecount <- ggplot(blade_counts_1,
+                                   aes(x = release_temp, y = n, fill = treatment)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = treatment_colors) +
+  labs(
+    y = "Juvenile Sporophyte Count",
+    x = "Release Temperature",
+    fill = "Treatment"
+  ) +
+  theme_bw() +
+  scale_x_continuous(breaks = sort(unique(blade_counts_1$release_temp))) + 
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day26_bladecount
+
+#ggsave("day 26 sporo count.jpg", plot = day26_bladecount, width = 7, height = 5, units = "in")
+```
+
+```{r day 26 female vs male scoring by treatment, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("sporoFOV.csv")
+
+blade_rec_counts <- data %>%
+  filter(dpr == "26") %>%
+  filter(treatment %in% c("recovery") ) 
+
+blade_rec_sex_counts <- blade_rec_counts %>%
+  pivot_longer(
+    cols = c(male, female),
+    names_to = "sex",
+    values_to = "n"
+  ) %>%
+  mutate(
+    sex = recode(sex,
+                  "female" = "Female",
+                  "male" = "Male")
+  )
+
+blade_rec_sex_counts <- blade_rec_sex_counts %>%
+  group_by(release_temp, sex, treatment) %>%
+  summarise(count = sum(n), .groups = "drop")
+
+
+sex_colors <- c(
+  "Male" = "#9EB9F3",
+  "Female" = "#FF856C"
+)
+
+day26_sexrecbladecount <- ggplot(blade_rec_sex_counts,
+                           aes(x = release_temp,
+                               y = count,
+                               fill = sex)) +
+  geom_col(position = position_dodge(width = 0.8),
+           color = "black") +
+  scale_fill_manual(values = sex_colors) +
+  scale_x_continuous(breaks = sort(unique(blade_rec_sex_counts$release_temp))) +
+  labs(
+    y = "Recovery Treatment Day 26 Sex Count",
+    x = "Release Temperature",
+    fill = "Sex"
+  ) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0, 170)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day26_sexrecbladecount
+
+
+blade_con_counts <- data %>%
+  filter(dpr == "26") %>%
+  filter(treatment %in% c("control") ) 
+
+blade_con_sex_counts <- blade_con_counts %>%
+  pivot_longer(
+    cols = c(male, female),
+    names_to = "sex",
+    values_to = "n"
+  ) %>%
+  mutate(
+    sex = recode(sex,
+                  "female" = "Female",
+                  "male" = "Male")
+  )
+
+blade_con_sex_counts <- blade_con_sex_counts %>%
+  group_by(release_temp, sex, treatment) %>%
+  summarise(count = sum(n), .groups = "drop")
+
+day26_sexconbladecount <- ggplot(blade_con_sex_counts,
+                           aes(x = release_temp,
+                               y = count,
+                               fill = sex)) +
+  geom_col(position = position_dodge(width = 0.8),
+           color = "black") +
+  scale_fill_manual(values = sex_colors) +
+  scale_x_continuous(breaks = sort(unique(blade_con_sex_counts$release_temp))) +
+  labs(
+    y = "Control Treatment Day 26 Sex Count",
+    x = "Release Temperature",
+    fill = "Sex"
+  ) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0, 170)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day26_sexconbladecount
+
+day26_sex <- plot_grid(day26_sexconbladecount, day26_sexrecbladecount, labels = c('A', 'B'), label_size = 12)
+day26_sex
+
+#ggsave("day 26 FOV sex.jpg", plot = day26_sex, width = 10, height = 5, units = "in")
+
+```
+
+```{r day 26 total sexed individuals, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("sporoFOV.csv")
+
+head(data)
+
+blade_FOV_counts <- data %>%
+  filter(dpr == "26")  
+
+blade_FOV_counts <- blade_FOV_counts %>%
+  group_by(release_temp, treatment) %>%
+  summarise(count = sum(sex.indiv), .groups = "drop")
+
+
+treatment_colors <- c(
+  "recovery" = "#9EB9F3",
+  "control" = "#FF856C"
+)
+
+day26_sexedcount <- ggplot(blade_FOV_counts,
+                           aes(x = release_temp,
+                               y = count,
+                               fill = treatment)) +
+  geom_col(position = position_dodge(width = 0.8),
+           color = "black") +
+  scale_fill_manual(values = treatment_colors) +
+  scale_x_continuous(breaks = sort(unique(blade_FOV_counts$release_temp))) +
+  labs(
+    y = "Day 26 Sexed Individuals Count",
+    x = "Release Temperature",
+    fill = "Treatment"
+  ) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0, 800)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day26_sexedcount
+
+#ggsave("day 26 FOV sexed individual count.jpg", plot = day26_sexedcount, width = 10, height = 5, units = "in")
+```
+
+```{r day 28 scoring by blade type, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("day28.csv")
+
+blade_rec_counts <- data %>%
+  filter(dpr == "28") %>%
+  filter(treatment %in% c("recovery") ) 
+
+blade_rec_counts_1 <- blade_rec_counts %>%
+  pivot_longer(
+    cols = c(type.1, type.2, type.3),
+    names_to = "type",
+    values_to = "n"
+  ) %>%
+  mutate(
+    type = recode(type,
+                  "type.1" = "Type 1",
+                  "type.2" = "Type 2",
+                  "type.3" = "Type 3")
+  )
+
+type_colors <- c(
+  "Type 1" = "#9EB9F3",
+  "Type 2" = "#F7D4A9",
+  "Type 3" = "#FF856C"
+)
+
+day26_recbladecount <- ggplot(blade_rec_counts_1,
+                           aes(x = release_temp,
+                               y = n,
+                               fill = type,
+                               group = interaction(treatment, type))) +
+  geom_col(position = position_dodge(width = 0.8),
+           color = "black") +
+  scale_fill_manual(values = type_colors) +
+  scale_x_continuous(breaks = sort(unique(blade_rec_counts_1$release_temp))) + 
+  labs(
+    y = "Juvenile Sporophyte Count",
+    x = "Release Temperature",
+    fill = "Morphology Type"
+  ) +
+  theme_bw() +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day26_recbladecount
+
+
+blade_con_counts <- data %>%
+  filter(dpr == "28") %>%
+  filter(treatment %in% c("control") ) 
+
+blade_con_counts_1 <- blade_con_counts %>%
+  pivot_longer(
+    cols = c(type.1, type.2, type.3),
+    names_to = "type",
+    values_to = "n"
+  ) %>%
+  mutate(
+    type = recode(type,
+                  "type.1" = "Type 1",
+                  "type.2" = "Type 2",
+                  "type.3" = "Type 3")
+  )
+
+type_colors <- c(
+  "Type 1" = "#638DE8",
+  "Type 2" = "#F3BA75",
+  "Type 3" = "#FF6849"
+)
+
+day26_conbladecount <- ggplot(blade_con_counts_1,
+                           aes(x = release_temp,
+                               y = n,
+                               fill = type,
+                               group = interaction(treatment, type))) +
+  geom_col(position = position_dodge(width = 0.8),
+           color = "black") +
+  scale_fill_manual(values = type_colors) +
+  scale_x_continuous(breaks = sort(unique(blade_con_counts_1$release_temp))) + 
+  labs(
+    y = "Juvenile Sporophyte Count",
+    x = "Release Temperature",
+    fill = "Morphology Type"
+  ) +
+  theme_bw() +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day26_conbladecount
+
+
+day26_bladetype <- plot_grid(day26_conbladecount, day26_recbladecount, labels = c('A', 'B'), label_size = 12)
+day26_bladetype
+#ggsave("day 26 blade morphology.jpg", plot = day26_bladetype, width = 10, height = 5, units = "in")
+
+```
+
+```{r day 22 ImageJ coding, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("day22.csv")
+
+data$release_temp <- as.factor(data$release_temp)
+data$table_temp <- as.factor(data$table_temp)
+
+
+treatment_colors <- c(
+  "recovery" = "#638DE8",
+  "control" = "#FF6849"
+)
+
+kelpblade <- ggplot(data, aes(x = factor(release_temp), y = area)) +
+  geom_boxplot(
+    aes(fill = treatment),
+    width = 0.6,
+    outlier.shape = 16,
+    outlier.color = "black",
+    outlier.size = 1.5,
+    alpha = 1
+  ) +
+  scale_fill_manual(values = treatment_colors) +
+  labs(
+    y = expression(Area~(mm^2)),
+    x = "Release Temperature (°C)",
+    fill = "Temperature Treatment"
+  ) +
+  ggtitle("Juvenile Sporophyte Size") +
+  theme_bw(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 15)
+  )
+
+print(kelpblade)
+
+#ggsave("bladearea.jpg", plot = kelpblade, width = 7, height = 5, units = "in")
+
+
+bladelength <- ggplot(data, aes(x = factor(release_temp), y = feret)) +
+  geom_boxplot(
+    aes(fill = treatment),
+    width = 0.6,
+    outlier.shape = 16,
+    outlier.color = "black",
+    outlier.size = 1.5,
+    alpha = 1
+  ) +
+  scale_fill_manual(values = treatment_colors) +
+  labs(
+    y = expression(length~(m)),
+    x = "Release Temperature (°C)",
+    fill = "Temperature Treatment"
+  ) +
+  ggtitle("Juvenile Sporophyte Length") +
+  theme_bw(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 15)
+  )
+
+print(bladelength)
+
+
+bladeperimeter <- ggplot(data, aes(x = factor(release_temp), y = perimeter)) +
+  geom_boxplot(
+    aes(fill = treatment),
+    width = 0.6,
+    outlier.shape = 16,
+    outlier.color = "black",
+    outlier.size = 1.5,
+    alpha = 1
+  ) +
+  scale_fill_manual(values = treatment_colors) +
+  labs(
+    y = expression(perimeter~(m)),
+    x = "Release Temperature (°C)",
+    fill = "Temperature Treatment"
+  ) +
+  ggtitle("Juvenile Sporophyte Perimeter") +
+  theme_bw(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 15)
+  )
+
+print(bladeperimeter)
+
+
+day22_blade <- plot_grid(kelpblade, bladelength, bladeperimeter, labels = c('A', 'B', 'C'), label_size = 12)
+day22_blade
+
+#ggsave("day 22 blade.jpg", plot = day22_blade, width = 15, height = 5, units = "in")
+```
+
+
+
+```{r day 19 imageJ coding, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("day19.csv")
+
+data$release_temp <- as.factor(data$release_temp)
+data$table_temp <- as.factor(data$table_temp)
+
+treatment_colors <- c(
+  "recovery" = "#638DE8",
+  "control" = "#FF6849"
+)
+
+kelpblade <- ggplot(data, aes(x = factor(release_temp), y = area)) +
+  geom_boxplot(
+    aes(fill = treatment),
+    width = 0.6,
+    outlier.shape = 16,
+    outlier.color = "black",
+    outlier.size = 1.5,
+    alpha = 1
+  ) +
+  scale_fill_manual(values = treatment_colors) +
+  labs(
+    y = expression(Area~(mm^2)),
+    x = "Release Temperature (°C)",
+    fill = "Temperature Treatment"
+  ) +
+  ggtitle("Juvenile Sporophyte Size") +
+  theme_bw(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 15)
+  )
+
+print(kelpblade)
+
+#ggsave("bladearea.jpg", plot = kelpblade, width = 7, height = 5, units = "in")
+
+bladelength <- ggplot(data, aes(x = factor(release_temp), y = feret)) +
+  geom_boxplot(
+    aes(fill = treatment),
+    width = 0.6,
+    outlier.shape = 16,
+    outlier.color = "black",
+    outlier.size = 1.5,
+    alpha = 1
+  ) +
+  scale_fill_manual(values = treatment_colors) +
+  labs(
+    y = expression(length~(mm)),
+    x = "Release Temperature (°C)",
+    fill = "Temperature Treatment"
+  ) +
+  ggtitle("Juvenile Sporophyte Length") +
+  theme_bw(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 15)
+  )
+
+print(bladelength)
+
+
+bladeperimeter <- ggplot(data, aes(x = factor(release_temp), y = perimeter)) +
+  geom_boxplot(
+    aes(fill = treatment),
+    width = 0.6,
+    outlier.shape = 16,
+    outlier.color = "black",
+    outlier.size = 1.5,
+    alpha = 1
+  ) +
+  scale_fill_manual(values = treatment_colors) +
+  labs(
+    y = expression(perimeter~(mm)),
+    x = "Release Temperature (°C)",
+    fill = "Temperature Treatment"
+  ) +
+  ggtitle("Juvenile Sporophyte Perimeter") +
+  theme_bw(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 15)
+  )
+
+bladeperimeter
+
+
+day19_blade <- plot_grid(kelpblade, bladelength, bladeperimeter, labels = c('A', 'B', 'C'), label_size = 12)
+print(day19_blade)
+
+#ggsave("day 19 blade ImageJ.jpg", plot = day19_blade, width = 15, height = 5, units = "in")
+```
