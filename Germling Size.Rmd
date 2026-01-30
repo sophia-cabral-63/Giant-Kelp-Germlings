@@ -1,0 +1,802 @@
+---
+title: "Germling Size"
+author: "Sophia Cabral"
+date: "2026-01-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(multcomp)
+library(multcompView)
+
+temperature_colors <- c(
+  "12" = "#A4CEFF",   
+  "14" = "#1385F6", 
+  "16" = "#AEDAA6",
+  "18" = "#FFD580",
+  "20" = "orange",
+  "22" = "#F0A2A2",
+  "24" = "#F10000"
+)
+
+data <- read.csv("kelprecovsize.csv")
+
+data$release_temp <- as.factor(data$release_temp)
+data$dpr <- as.factor(data$dpr)
+
+```
+
+```{r settlement success, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+scoring <- read.csv("kelprecovscore.csv")
+
+scoring$Temp <- as.factor(scoring$Temp)
+
+scoring_data_avg <- scoring %>%
+  group_by(Temp) %>%
+  summarise(
+    germ_mean = mean(germ, na.rm = TRUE)
+  )
+
+score_success <- ggplot(scoring_data_avg, aes(x = Temp, y = germ_mean)) +
+  geom_point(aes(fill = Temp), 
+             shape = 21,        # allows fill to show
+             color = "black",   # border color
+             alpha = 1,
+             size = 3) +
+  labs(
+    y = "Average Germination Success",
+    x = "Temperature",
+    fill = expression(Temperature~(degree~C))
+  ) +
+  scale_fill_manual(values = temperature_colors) +
+  theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+score_success
+#ggsave("germination success.jpg", plot = score_success, width = 7, height = 5, units = "in")
+
+```
+
+```{r area and length day 2 & 7, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+filtdata <- data %>%
+  filter(dpr %in% c("2", "7")) %>%
+  group_by(release_temp, dpr) 
+
+recoveryarea <- ggplot(filtdata, aes(x = dpr, y = area, color = release_temp)) +
+  geom_boxplot(aes(fill = release_temp), color= "black", linewidth = 0.2, width = 0.6, outlier.shape = 16, 
+               outlier.color = "black", outlier.size = 1.5, alpha = 1) +  
+  labs(y = expression(Area~(microns^2)), x = "Day Post Release", 
+       fill = expression(Temperature~(degree~C))) +
+  scale_color_manual(values = temperature_colors) +
+  scale_fill_manual(values = temperature_colors) +  # Apply colors to fill as well
+  scale_y_continuous(limits = c(0, 300)) +  # Change to log scale
+  theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",  
+    legend.direction = "horizontal", 
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+print(recoveryarea)
+
+recoverylength <- ggplot(filtdata, aes(x = dpr, y = length, color = release_temp)) +
+  geom_boxplot(aes(fill = release_temp), color= "black", linewidth = 0.2, width = 0.6, outlier.shape = 16, 
+               outlier.color = "black", outlier.size = 1.5, alpha = 1) +  
+  labs(y = expression(Length~(microns)), x = "Day Post Release", 
+       fill = expression(Temperature~(degree~C))) +
+  scale_color_manual(values = temperature_colors) +
+  scale_fill_manual(values = temperature_colors) +  # Apply colors to fill as well
+  scale_y_continuous(limits = c(0, 100)) +  # Change to log scale
+  theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",  
+    legend.direction = "horizontal", 
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+print(recoverylength)
+
+
+#ggsave("recovery experiment area.jpg", plot = recoveryarea, width = 7, height = 5, units = "in")
+#ggsave("recovery experiment length.jpg", plot = recoverylength, width = 7, height = 5, units = "in")
+
+```
+
+```{r area and length day 2 only, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+filtdata <- data %>%
+  filter(dpr %in% c("2")) %>%
+  group_by(release_temp, dpr) 
+
+
+day2recoveryarea <- ggplot(filtdata, aes(x = dpr, y = area, color = release_temp)) +
+  geom_boxplot(aes(fill = release_temp), color= "black", linewidth = 0.2, width = 0.6, outlier.shape = 16, 
+               outlier.color = "black", outlier.size = 1.5, alpha = 1) +  
+  labs(y = expression(Area~(microns^2)), x = "Day Post Release", 
+       fill = expression(Temperature~(degree~C))) +
+  scale_color_manual(values = temperature_colors) +
+  scale_fill_manual(values = temperature_colors) +  # Apply colors to fill as well
+  scale_y_continuous(limits = c(0, 100)) +  # Change to log scale
+  theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",  
+    legend.direction = "horizontal", 
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+print(day2recoveryarea)
+
+
+#ggsave("Day 2 Area.jpg", plot = day2recoveryarea, width = 7, height = 5, units = "in")
+
+```
+
+```{r day 12 area and length, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+filtdata <- data %>%
+  filter(dpr %in% c("12")) %>%
+  group_by(release_temp, dpr, treatment) 
+
+recoveryarea <- ggplot(filtdata, aes(x = treatment, y = area, color = release_temp)) +
+  geom_boxplot(aes(fill = release_temp), color= "black", linewidth = 0.2, width = 0.6, outlier.shape = 16, 
+               outlier.color = "black", outlier.size = 1.5, alpha = 1) +  
+  labs(y = expression(Area~(microns^2)), x = "Day Post Release", 
+       fill = expression(Temperature~(degree~C))) +
+  scale_color_manual(values = temperature_colors) +
+  scale_fill_manual(values = temperature_colors) +  # Apply colors to fill as well
+  #scale_y_continuous(limits = c(0, 300)) +  # Change to log scale
+  theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",  
+    legend.direction = "horizontal", 
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+print(recoveryarea)
+
+recoverylength <- ggplot(filtdata, aes(x = treatment, y = length, color = release_temp)) +
+  geom_boxplot(aes(fill = release_temp), color= "black", linewidth = 0.2, width = 0.6, outlier.shape = 16, 
+               outlier.color = "black", outlier.size = 1.5, alpha = 1) +  
+  labs(y = expression(Length~(microns)), x = "Day Post Release", 
+       fill = expression(Temperature~(degree~C))) +
+  scale_color_manual(values = temperature_colors) +
+  scale_fill_manual(values = temperature_colors) +  # Apply colors to fill as well
+  #scale_y_continuous(limits = c(0, 100)) +  # Change to log scale
+  theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",  
+    legend.direction = "horizontal", 
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+print(recoverylength)
+
+
+day12_size <- plot_grid(recoveryarea, recoverylength, labels = c('A', 'B'), label_size = 12)
+day12_size
+#ggsave("day 12 size.jpg", plot = day12_size, width = 15, height = 5, units = "in")
+
+```
+
+```{r day 12 by sex: area and length, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+filtdata <- data %>%
+  filter(dpr == "12", stage == "4", treatment == "recovery") %>%
+  group_by(release_temp, dpr, treatment) %>%
+  mutate(
+    sex = recode(sex,
+      "m" = "male",
+      "f" = "female"
+    )
+  ) 
+  
+sex_colors <- c(
+  "female" = "#D81B60",
+  "male" = "#1E88E5"
+)
+
+recoveryarea <- ggplot(
+  filtdata,
+  aes(x = release_temp, y = area, fill = sex)
+) +
+  geom_boxplot(
+    color = "black",
+    linewidth = 0.2,
+    width = 0.6,
+    outlier.shape = 16,
+    outlier.color = "black",
+    outlier.size = 1.5,
+    alpha = 1
+  ) +
+  labs(
+    y = expression(Area~(microns^2)),
+    x = expression(Release~Temperature~(degree~C)),
+    fill = "Sex"
+  ) +
+  scale_fill_manual(values = sex_colors) +
+  scale_y_continuous(limits = c(0, 2500)) +
+  theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+print(recoveryarea)
+
+
+filtdata <- data %>%
+  filter(dpr == "12", stage == "4", treatment == "control") %>%
+  group_by(release_temp, dpr, treatment) %>%
+  mutate(
+    sex = recode(sex,
+      "m" = "male",
+      "f" = "female"
+    )
+  ) 
+  
+sex_colors <- c(
+  "female" = "#D81B60",
+  "male" = "#1E88E5"
+)
+
+controlarea <- ggplot(
+  filtdata,
+  aes(x = release_temp, y = area, fill = sex)
+) +
+  geom_boxplot(
+    color = "black",
+    linewidth = 0.2,
+    width = 0.6,
+    outlier.shape = 16,
+    outlier.color = "black",
+    outlier.size = 1.5,
+    alpha = 1
+  ) +
+  labs(
+    y = expression(Area~(microns^2)),
+    x = expression(Release~Temperature~(degree~C)),
+    fill = "Sex"
+  ) +
+  scale_fill_manual(values = sex_colors) +
+  scale_y_continuous(limits = c(0, 2500)) +
+  theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+print(controlarea)
+
+
+day12_sex_size <- plot_grid(controlarea, recoveryarea, labels = c('A', 'B'), label_size = 12)
+day12_sex_size
+#ggsave("day 12 sex size.jpg", plot = day12_sex_size, width = 15, height = 5, units = "in")
+
+```
+
+
+```{r day 12 area and length, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("scoring1.csv")
+
+data$Temp <- as.numeric(as.character(data$Temp))
+data$germ.perc <- as.numeric(as.character(data$germ.perc))
+data$Experiment <- as.factor(data$Experiment)
+
+
+exp_colors <- c(
+  "2024" = "#A4CEFF",   
+  "2025" = "#F0A2A2"
+)
+
+scoringyears <- ggplot(data, aes(x = Temp, y = germ.perc, color = Experiment)) +
+   geom_point(aes(fill = Experiment), 
+             shape = 21,        
+             color = "black", 
+             alpha = 0.8,
+             size = 3) +
+  labs(y = ("% Germinated"), x = expression(Temperature~(degree~C)), 
+       fill = "Experiment") +
+  scale_color_manual(values = exp_colors) +
+  scale_fill_manual(values = exp_colors) +  
+  scale_y_continuous(
+  limits = c(0, 100),
+  breaks = seq(0, 100, 20)
+) +
+  scale_x_continuous(
+  limits = c(12, 24),
+  breaks = seq(12, 24, 2)
+) +
+  theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",  
+    legend.direction = "horizontal", 
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+print(scoringyears)
+
+#ggsave("day 1 scoring 2024 & 2025.jpg", plot = scoringyears, width = 5, height = 5, units = "in")
+```
+
+
+```{r area averages, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+dagrota <- read.csv("kelprecovsize.csv")
+
+data$area <- as.numeric(data$area)
+data$release_temp <- as.factor(data$release_temp)
+data$dpr <- as.factor(data$dpr)
+
+avg_area <- data %>%
+  group_by(release_temp, treatment, dpr) %>%
+  summarise(
+    mean_area = mean(area, na.rm = TRUE),
+    n = sum(!is.na(area)),   # optional: sample size
+    .groups = "drop"
+  )
+
+
+data <- read.csv("sporosize.csv")
+
+data$area <- as.numeric(data$area)
+data$release_temp <- as.factor(data$release_temp)
+data$dpr <- as.factor(data$dpr)
+
+avg_area <- data %>%
+  group_by(release_temp, treatment, dpr) %>%
+  summarise(
+    mean_area = mean(area, na.rm = TRUE),
+    n = sum(!is.na(area)),   # optional: sample size
+    .groups = "drop"
+  )
+
+```
+
+
+
+```{r growth rate, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("growthrate.csv")
+
+data$time.1 <- as.numeric(data$time.1)
+data$time.2 <- as.numeric(data$time.2)
+data$time.3 <- as.numeric(data$time.3)
+data$time.4 <- as.numeric(data$time.4)
+data$temperature <- as.numeric(data$temperature)
+
+exp_colors <- c(
+  "control" = "#A4CEFF",   
+  "experimental" = "#F0A2A2"
+)
+
+growthrate1 <- ggplot(data, aes(x = temperature, y = time.1, color = treatment)) +
+  geom_point(
+    aes(fill = treatment),
+    shape = 21,
+    color = "black",
+    alpha = 0.8,
+    size = 3
+  ) +
+  geom_smooth(
+    aes(group = treatment, color = treatment),
+    method = "loess",
+    se = FALSE,
+    linewidth = 1,
+    linetype = "dashed"
+  ) +
+  labs(
+  y = expression(Growth~rate~(mu*m^2/day)),
+  x = expression(Temperature~(degree~C)),
+  fill = "Treatment"
+) +
+  scale_color_manual(values = exp_colors) +
+  scale_fill_manual(values = exp_colors) +
+  scale_x_continuous(
+    limits = c(12, 24),
+    breaks = seq(12, 24, 2)
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black")
+  )
+
+print(growthrate1)
+
+growthrate2 <- ggplot(data, aes(x = temperature, y = time.2, color = treatment)) +
+  geom_point(
+    aes(fill = treatment),
+    shape = 21,
+    color = "black",
+    alpha = 0.8,
+    size = 3
+  ) +
+  geom_smooth(
+    aes(group = treatment, color = treatment),
+    method = "loess",
+    se = FALSE,
+    linewidth = 1,
+    linetype = "dashed"
+  ) +
+  labs(
+  y = expression(Growth~rate~(mu*m^2/day)),
+  x = expression(Temperature~(degree~C)),
+  fill = "Treatment"
+) +
+  scale_color_manual(values = exp_colors) +
+  scale_fill_manual(values = exp_colors) +
+  scale_x_continuous(
+    limits = c(12, 24),
+    breaks = seq(12, 24, 2)
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black")
+  )
+
+print(growthrate2)
+
+growthrate3 <- ggplot(data, aes(x = temperature, y = time.3, color = treatment)) +
+  geom_point(
+    aes(fill = treatment),
+    shape = 21,
+    color = "black",
+    alpha = 0.8,
+    size = 3
+  ) +
+  geom_smooth(
+    aes(group = treatment, color = treatment),
+    method = "loess",
+    se = FALSE,
+    linewidth = 1,
+    linetype = "dashed"
+  ) +
+  labs(
+  y = expression(Growth~rate~(mu*m^2/day)),
+  x = expression(Temperature~(degree~C)),
+  fill = "Treatment"
+) +
+  scale_color_manual(values = exp_colors) +
+  scale_fill_manual(values = exp_colors) +
+  scale_x_continuous(
+    limits = c(12, 24),
+    breaks = seq(12, 24, 2)
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black")
+  )
+
+print(growthrate3)
+
+growthrate4 <- ggplot(data, aes(x = temperature, y = time.4, color = treatment)) +
+  geom_point(
+    aes(fill = treatment),
+    shape = 21,
+    color = "black",
+    alpha = 0.8,
+    size = 3
+  ) +
+  geom_smooth(
+    aes(group = treatment, color = treatment),
+    method = "loess",
+    se = FALSE,
+    linewidth = 1,
+    linetype = "dashed"
+  ) +
+  labs(
+  y = expression(Growth~rate~(mu*m^2/day)),
+  x = expression(Temperature~(degree~C)),
+  fill = "Treatment"
+) + 
+  scale_color_manual(values = exp_colors) +
+  scale_fill_manual(values = exp_colors) +
+  scale_x_continuous(
+    limits = c(12, 24),
+    breaks = seq(12, 24, 2)
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black")
+  )
+
+print(growthrate4)
+
+
+individual_growthrates <- plot_grid(growthrate1, growthrate2, growthrate3, growthrate4, labels = c('A', 'B', 'C', 'D'), label_size = 12)
+individual_growthrates
+#ggsave("individual growth rates.jpg", plot = individual_growthrates, width = 15, height = 5, units = "in")
+#ggsave("growthrate 1.jpg", plot = growthrate1, width = 8, height = 5, units = "in")
+#ggsave("growthrate 2.jpg", plot = growthrate2, width = 8, height = 5, units = "in")
+#ggsave("growthrate 4.jpg", plot = growthrate4, width = 8, height = 5, units = "in")
+
+
+avg_time1 <- data %>%
+  group_by(temperature) %>%
+  summarise(
+    mean_growth = mean(time.1, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+growthrateavg <- ggplot(avg_time1, aes(x = temperature, y = mean_growth)) +
+  geom_point(
+    #shape = 21,
+    color = "black",
+    alpha = 0.9,
+    size = 3
+  ) +
+  geom_smooth(
+    method = "loess",
+    se = FALSE,
+    linewidth = 1,
+    linetype = "dashed",
+    color = "black",
+    alpha = 0.5
+  ) +
+  labs(
+  y = expression(Growth~rate~(mu*m^2/day)),
+  x = expression(Temperature~(degree~C))
+) +
+  scale_x_continuous(
+    limits = c(12, 24),
+    breaks = seq(12, 24, 2)
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black")
+  )
+
+print(growthrateavg)
+
+#ggsave("avg day 2-7 growth rates.jpg", plot = growthrateavg, width = 8, height = 5, units = "in")
+```
+
+```{r growth rate combined, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data_long <- data %>%
+  pivot_longer(
+    cols = c(time.1, time.2),
+    names_to = "time_period",
+    values_to = "growth_rate"
+  ) %>%
+  mutate(
+    time_period = recode(
+      time_period,
+      "time.1" = "Days 2–7",
+      "time.2" = "Days 7–12"
+    )
+  )
+
+
+growthrate_combined <- ggplot(
+  data_long,
+  aes(
+    x = temperature,
+    y = growth_rate,
+    color = treatment,
+    linetype = time_period
+  )
+) +
+  geom_point(
+    aes(fill = treatment),
+    shape = 21,
+    color = "black",
+    alpha = 0.8,
+    size = 3
+  ) +
+  geom_smooth(
+    aes(group = interaction(treatment, time_period)),
+    method = "loess",
+    se = FALSE,
+    linewidth = 1
+  ) +
+  labs(
+    y = "Growth rate",
+    x = expression(Temperature~(degree~C)),
+    color = "Treatment",
+    fill = "Treatment",
+    linetype = "Time period"
+  ) +
+  scale_color_manual(values = exp_colors) +
+  scale_fill_manual(values = exp_colors) +
+  scale_linetype_manual(
+    values = c("Days 2–7" = "solid", "Days 7–12" = "dashed")
+  ) +
+  scale_x_continuous(
+    limits = c(12, 24),
+    breaks = seq(12, 24, 2)
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black")
+  )
+
+print(growthrate_combined)
+#ggsave("avg day 2-12 growth rates same graph.jpg", plot = growthrate_combined, width = 8, height = 5, units = "in")
+
+
+data_long <- data %>%
+  pivot_longer(
+    cols = c(time.3, time.4),
+    names_to = "time_period",
+    values_to = "growth_rate"
+  ) %>%
+  mutate(
+    time_period = recode(
+      time_period,
+      "time.3" = "Days 12–19",
+      "time.4" = "Days 19–22"
+    )
+  )
+
+
+growthrate_combined <- ggplot(
+  data_long,
+  aes(
+    x = temperature,
+    y = growth_rate,
+    color = treatment,
+    linetype = time_period
+  )
+) +
+  geom_point(
+    aes(fill = treatment),
+    shape = 21,
+    color = "black",
+    alpha = 0.8,
+    size = 3
+  ) +
+  geom_smooth(
+    aes(group = interaction(treatment, time_period)),
+    method = "loess",
+    se = FALSE,
+    linewidth = 1
+  ) +
+  labs(
+    y = "Growth rate",
+    x = expression(Temperature~(degree~C)),
+    color = "Treatment",
+    fill = "Treatment",
+    linetype = "Time period"
+  ) +
+  scale_color_manual(values = exp_colors) +
+  scale_fill_manual(values = exp_colors) +
+  scale_linetype_manual(
+    values = c("Days 12–19" = "solid", "Days 19–22" = "dashed")
+  ) +
+  scale_x_continuous(
+    limits = c(12, 24),
+    breaks = seq(12, 24, 2)
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_line(color = "gray", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.box.background = element_rect(color = "black"),
+    panel.border = element_rect(color = "black")
+  )
+
+print(growthrate_combined)
+```
