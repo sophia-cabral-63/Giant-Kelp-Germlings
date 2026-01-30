@@ -1,0 +1,1055 @@
+---
+title: "Recovery Experiment Stage Scoring"
+author: "Sophia Cabral"
+date: "2026-01-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(cowplot)
+
+data <- read.csv("kelprecovsize.csv")
+data$release_temp <- as.factor(data$release_temp)
+data$dpr <- as.factor(data$dpr)
+
+sex_colors <- c(
+  "female" = "#D81B60",
+  "male" = "#1E88E5"
+)
+```
+
+```{r Day 2 stages all together, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+stage_counts <- data %>%
+  filter(dpr == "2",
+         !is.na(stage)) %>%
+  group_by(release_temp, stage) %>%
+  summarise(n = n(), .groups = "drop")
+
+stage_counts <- stage_counts %>%
+  complete(release_temp, stage, fill = list(n = 0))
+
+stage_counts$stage <- as.factor(stage_counts$stage)
+
+stage_colors <- c(
+  "1" = "#D81B60",
+  "2" = "#1E88E5",
+  "3" = "#FFC107",
+  "4" = "#386CB0",
+  "5" = "#004D40"
+)
+
+day2_stage_development <- ggplot(stage_counts, 
+                            aes(x = release_temp, y = n, fill = stage)) +
+  geom_col(position = "dodge", color = "black") +
+  scale_fill_manual(values = stage_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Temperature",
+    fill = "Stage"
+  )
+
+day2_stage_development
+#ggsave("stage development.jpg", plot = stage_development, width = 7, height = 5, units = "in")
+```
+
+```{r Day 7 stages all together, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+stage_counts <- data %>%
+  filter(dpr == "7",
+         !is.na(stage)) %>%
+  group_by(release_temp, stage) %>%
+  summarise(n = n(), .groups = "drop")
+
+stage_counts <- stage_counts %>%
+  complete(release_temp, stage, fill = list(n = 0))
+
+stage_counts$stage <- as.factor(stage_counts$stage)
+
+stage_colors <- c(
+  "1" = "#D81B60",
+  "2" = "#1E88E5",
+  "3" = "#FFC107",
+  "4" = "#386CB0",
+  "5" = "#004D40"
+)
+
+day7_stage_development <- ggplot(stage_counts, 
+                            aes(x = release_temp, y = n, fill = stage)) +
+  geom_col(position = "dodge", color = "black") +
+  scale_fill_manual(values = stage_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Temperature",
+    fill = "Stage"
+  )
+
+day7_stage_development
+#ggsave("stage development.jpg", plot = stage_development, width = 7, height = 5, units = "in")
+```
+
+```{r day 2 and 7 cowplot stage development, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+stage_development <- plot_grid(day2_stage_development, day7_stage_development, labels = c('A', 'B'), label_size = 12)
+stage_development
+#ggsave("stage development.jpg", plot = stage_development, width = 10, height = 5, units = "in")
+```
+
+```{r Day 2 & 7 Stages FOV analysis, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("FOVs.csv")
+
+data <- data %>%
+  mutate(
+    stage.5   = replace_na(stage.5, 0),
+    stage.4   = replace_na(stage.4, 0),
+    stage.2.3 = replace_na(stage.2.3, 0),
+    spores    = replace_na(spores, 0)
+  )
+
+stage_long_2 <- data %>%
+  filter(dpr == "2") %>%
+  filter(plate %in% c("2", "3", "4")) %>%
+  pivot_longer(
+    cols = c(spores, stage.2.3, stage.4, stage.5),
+    names_to = "stage",
+    values_to = "n"
+  ) %>%
+  mutate(
+    stage = recode(stage,
+      "spores" = "1",
+      "stage.2.3" = "2-3",
+      "stage.4" = "4",
+      "stage.5" = "5"
+    ),
+    stage = as.factor(stage)
+  )
+
+
+stage_counts_2 <- stage_long_2 %>%
+  group_by(release_temp, stage) %>%
+  summarise(n = sum(n), .groups = "drop")
+
+stage_colors <- c(
+  "1" = "#D81B60",
+  "2-3" = "#1E88E5",
+  "4" = "#FFC107",
+  "5" = "#004D40"
+)
+
+stage_counts_2$release_temp <- factor(stage_counts_2$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day2_stage_development <- ggplot(stage_counts_2,
+                                  aes(x = release_temp, y = n, fill = stage)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = stage_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Stage"
+  ) +
+  theme_bw() +
+  #coord_cartesian(ylim = c(0, 40)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day2_stage_development
+
+stage_long_7 <- data %>%
+  filter(dpr == "7") %>%
+  filter(plate %in% c("2", "3", "4")) %>%
+  pivot_longer(
+    cols = c(spores, stage.2.3, stage.4, stage.5),
+    names_to = "stage",
+    values_to = "n"
+  ) %>%
+  mutate(
+    stage = recode(stage,
+      "spores" = "1",
+      "stage.2.3" = "2-3",
+      "stage.4" = "4",
+      "stage.5" = "5"
+    ),
+    stage = as.factor(stage)
+  )
+
+
+stage_counts_7 <- stage_long_7 %>%
+  group_by(release_temp, stage) %>%
+  summarise(n = sum(n), .groups = "drop")
+
+stage_colors <- c(
+  "1" = "#D81B60",
+  "2-3" = "#1E88E5",
+  "4" = "#FFC107",
+  "5" = "#004D40"
+)
+
+stage_counts_7$release_temp <- factor(stage_counts_7$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day7_stage_development <- ggplot(stage_counts_7,
+                                  aes(x = release_temp, y = n, fill = stage)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = stage_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Stage"
+  ) +
+  theme_bw() +
+  #coord_cartesian(ylim = c(0, 40)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day7_stage_development
+
+
+FOV_stage_development <- plot_grid(day2_stage_development, day7_stage_development, labels = c('A', 'B'), label_size = 12)
+FOV_stage_development
+#ggsave("FOV Day 2 & 7 stage development.jpg", plot = FOV_stage_development, width = 10, height = 5, units = "in")
+```
+
+```{r Day 7 individual sex, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("kelprecovsize.csv")
+
+data$release_temp <- as.factor(data$release_temp)
+data$dpr <- as.factor(data$dpr)
+
+dpr_7 <- data %>%
+  filter(dpr == "7", stage == "4") %>%
+  mutate(
+    sex = recode(sex,
+      "m" = "male",
+      "f" = "female"
+    )
+  ) %>%
+  count(release_temp, sex, name = "n") %>%   # counts individuals per temp × sex
+  complete(release_temp, sex, fill = list(n = 0))
+
+day7ind_stage_development <- ggplot(
+  dpr_7,
+  aes(x = release_temp, y = n, fill = sex)
+) +
+  geom_col(position = "dodge", color = "black") +
+  scale_fill_manual(values = sex_colors) +
+  labs(
+    y = "Count",
+    x = "Temperature",
+    fill = "Sex"
+  )
+
+day7ind_stage_development
+#ggsave("day 7 individual stage development.jpg", plot = day7ind_stage_development, width = 7, height = 5, units = "in")
+```
+
+
+```{r Day 7 Plates Sex, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("FOVs.csv")
+
+data <- data %>%
+  mutate(
+    female   = replace_na(female, 0),
+    male   = replace_na(male, 0),
+    )
+stage_long <- data %>%
+  filter(dpr == "7") %>%
+  filter(treatment == "recovery") 
+
+sex_long <- stage_long %>%
+  pivot_longer(
+    cols = c(male, female),
+    names_to = "sex",
+    values_to = "n"
+  )
+
+stage_counts <- sex_long %>%
+  group_by(release_temp, sex) %>%
+  summarise(n = sum(n, na.rm = TRUE), .groups = "drop")
+
+stage_counts$release_temp <- factor(stage_counts$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day7_recsex_development <- ggplot(stage_counts,
+                                  aes(x = release_temp, y = n, fill = sex)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = sex_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Sex"
+  ) +
+  theme_bw() +
+   coord_cartesian(ylim = c(0, 30)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day7_recsex_development
+
+data <- data %>%
+  mutate(
+    female   = replace_na(female, 0),
+    male   = replace_na(male, 0),
+    )
+stage_long <- data %>%
+  filter(dpr == "7") %>%
+  filter(treatment == "control") 
+
+sex_long <- stage_long %>%
+  pivot_longer(
+    cols = c(male, female),
+    names_to = "sex",
+    values_to = "n"
+  )
+
+stage_counts <- sex_long %>%
+  group_by(release_temp, sex) %>%
+  summarise(n = sum(n, na.rm = TRUE), .groups = "drop")
+
+stage_counts$release_temp <- factor(stage_counts$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day7_consex_development <- ggplot(stage_counts,
+                                  aes(x = release_temp, y = n, fill = sex)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = sex_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Sex"
+  ) +
+  theme_bw() +
+   coord_cartesian(ylim = c(0, 30)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day7_consex_development
+
+
+day7_sex_plate_development <- plot_grid(day7_recsex_development, day7_consex_development, labels = c('A', 'B'), label_size = 12)
+day7_sex_plate_development
+#ggsave("day 7 sex plate development.jpg", plot = day7_sex_plate_development, width = 10, height = 5, units = "in")
+```
+
+
+```{r Day 7 Total Sex, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("FOVs.csv")
+
+data <- data %>%
+  mutate(
+    female   = replace_na(female, 0),
+    male   = replace_na(male, 0),
+    )
+stage_long <- data %>%
+  filter(dpr == "7") 
+ 
+sex_long <- stage_long %>%
+  pivot_longer(
+    cols = c(male, female),
+    names_to = "sex",
+    values_to = "n"
+  )
+
+stage_counts <- sex_long %>%
+  group_by(release_temp, sex) %>%
+  summarise(n = sum(n, na.rm = TRUE), .groups = "drop")
+
+stage_counts$release_temp <- factor(stage_counts$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day7_sex_together <- ggplot(stage_counts,
+                                  aes(x = release_temp, y = n, fill = sex)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = sex_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Sex"
+  ) +
+  theme_bw() +
+   coord_cartesian(ylim = c(0, 40)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day7_sex_together
+#ggsave("day 7 sex all plate summary.jpg", plot = day7_sex_together, width = 10, height = 5, units = "in")
+```
+
+
+```{r Day 7 Seperate PlateStage, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("FOVs.csv")
+
+
+data <- data %>%
+  mutate(
+    stage.5   = replace_na(stage.5, 0),
+    stage.4   = replace_na(stage.4, 0),
+    stage.2.3 = replace_na(stage.2.3, 0),
+    spores    = replace_na(spores, 0)
+  )
+
+stage_long <- data %>%
+  filter(dpr == "7") %>%
+  filter(treatment == "control") %>%
+  pivot_longer(
+    cols = c(spores, stage.2.3, stage.4, stage.5),
+    names_to = "stage",
+    values_to = "n"
+  ) %>%
+  mutate(
+    stage = recode(stage,
+      "spores" = "1",
+      "stage.2.3" = "2-3",
+      "stage.4" = "4",
+      "stage.5" = "5"
+    ),
+    stage = as.factor(stage)
+  )
+
+
+stage_counts <- stage_long %>%
+  group_by(release_temp, stage) %>%
+  summarise(n = sum(n), .groups = "drop")
+
+stage_colors <- c(
+  "1" = "#D81B60",
+  "2-3" = "#1E88E5",
+  "4" = "#FFC107",
+  "5" = "#004D40"
+)
+
+stage_counts$release_temp <- factor(stage_counts$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day7plate_constage_development <- ggplot(stage_counts,
+                                  aes(x = release_temp, y = n, fill = stage)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = stage_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Stage"
+  ) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0, 75)) +
+  #scale_x_continuous(breaks = sort(unique(stage_counts$release_temp))) + 
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day7plate_constage_development
+
+
+
+stage_long_1 <- data %>%
+  filter(dpr == "7") %>%
+  filter(treatment == "recovery") %>%
+  pivot_longer(
+    cols = c(spores, stage.2.3, stage.4, stage.5),
+    names_to = "stage",
+    values_to = "n"
+  ) %>%
+  mutate(
+    stage = recode(stage,
+      "spores" = "1",
+      "stage.2.3" = "2-3",
+      "stage.4" = "4",
+      "stage.5" = "5"
+    ),
+    stage = as.factor(stage)
+  )
+
+stage_counts_1 <- stage_long_1 %>%
+  group_by(release_temp, stage) %>%
+  summarise(n = sum(n), .groups = "drop")
+
+stage_colors <- c(
+  "1" = "#D81B60",
+  "2-3" = "#1E88E5",
+  "4" = "#FFC107",
+  "5" = "#004D40"
+)
+
+stage_counts_1$release_temp <- factor(stage_counts_1$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day7plate_recstage_development <- ggplot(stage_counts_1,
+                                  aes(x = release_temp, y = n, fill = stage)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = stage_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Stage"
+  ) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0, 75)) +
+  #scale_x_continuous(breaks = sort(unique(stage_counts$release_temp))) + 
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day7plate_recstage_development
+
+
+day7plate_stage_development <- plot_grid(day7plate_recstage_development, day7plate_constage_development, labels = c('A', 'B'), label_size = 12)
+day7plate_stage_development
+
+#ggsave("day 7 plate stage development.jpg", plot = day7plate_stage_development, width = 10, height = 5, units = "in")
+```
+
+```{r Day 8  Stage, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("FOVs.csv")
+
+head(data)
+
+data <- data %>%
+  mutate(
+    stage.5   = replace_na(stage.5, 0),
+    stage.4   = replace_na(stage.4, 0),
+    stage.2.3 = replace_na(stage.2.3, 0),
+    spores    = replace_na(spores, 0)
+  )
+
+stage_long <- data %>%
+  filter(dpr == "8") %>%
+  filter(treatment == "control") %>%
+  pivot_longer(
+    cols = c(spores, stage.2.3, stage.4, stage.5),
+    names_to = "stage",
+    values_to = "n"
+  ) %>%
+  mutate(
+    stage = recode(stage,
+      "spores" = "1",
+      "stage.2.3" = "2-3",
+      "stage.4" = "4",
+      "stage.5" = "5"
+    ),
+    stage = as.factor(stage)
+  )
+
+stage_counts <- stage_long %>%
+  group_by(release_temp, stage) %>%
+  summarise(n = sum(n), .groups = "drop")
+
+stage_colors <- c(
+  "1" = "#D81B60",
+  "2-3" = "#1E88E5",
+  "4" = "#FFC107",
+  "5" = "#004D40"
+)
+
+stage_counts$release_temp <- factor(stage_counts$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day8_constage_development <- ggplot(stage_counts,
+                                  aes(x = release_temp, y = n, fill = stage)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = stage_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Stage"
+  ) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0, 45)) +
+  #scale_x_continuous(breaks = sort(unique(stage_counts$release_temp))) + 
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day8_constage_development
+
+stage_long_1 <- data %>%
+  filter(dpr == "8") %>%
+  filter(treatment == "recovery") %>%
+  pivot_longer(
+    cols = c(spores, stage.2.3, stage.4, stage.5),
+    names_to = "stage",
+    values_to = "n"
+  ) %>%
+  mutate(
+    stage = recode(stage,
+      "spores" = "1",
+      "stage.2.3" = "2-3",
+      "stage.4" = "4",
+      "stage.5" = "5"
+    ),
+    stage = as.factor(stage)
+  )
+
+
+stage_counts_1 <- stage_long_1 %>%
+  group_by(release_temp, stage) %>%
+  summarise(n = sum(n), .groups = "drop")
+
+stage_colors <- c(
+  "1" = "#D81B60",
+  "2-3" = "#1E88E5",
+  "4" = "#FFC107",
+  "5" = "#004D40"
+)
+
+stage_counts_1$release_temp <- factor(stage_counts_1$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day8_recstage_development <- ggplot(stage_counts_1,
+                                  aes(x = release_temp, y = n, fill = stage)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = stage_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Stage"
+  ) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0, 45)) +
+  #scale_x_continuous(breaks = sort(unique(stage_counts$release_temp))) + 
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day8_recstage_development
+
+
+
+day8_stage_development <- plot_grid(day8_recstage_development, day8_constage_development, labels = c('A', 'B'), label_size = 12)
+day8_stage_development
+#ggsave("day 8 stage development.jpg", plot = day8_stage_development, width = 10, height = 5, units = "in")
+```
+
+```{r Day 8 Plates Sex, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("FOVs.csv")
+
+head(data)
+
+data <- data %>%
+  mutate(
+    female   = replace_na(female, 0),
+    male   = replace_na(male, 0),
+    )
+stage_long <- data %>%
+  filter(dpr == "8") %>%
+  filter(treatment == "recovery") 
+
+sex_long <- stage_long %>%
+  pivot_longer(
+    cols = c(male, female),
+    names_to = "sex",
+    values_to = "n"
+  )
+
+stage_counts <- sex_long %>%
+  group_by(release_temp, sex) %>%
+  summarise(n = sum(n, na.rm = TRUE), .groups = "drop")
+
+stage_counts$release_temp <- factor(stage_counts$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day8_recsex_development <- ggplot(stage_counts,
+                                  aes(x = release_temp, y = n, fill = sex)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = sex_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Sex"
+  ) +
+  theme_bw() +
+   coord_cartesian(ylim = c(0, 30)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day8_recsex_development
+
+
+data <- data %>%
+  mutate(
+    female   = replace_na(female, 0),
+    male   = replace_na(male, 0),
+    )
+stage_long <- data %>%
+  filter(dpr == "8") %>%
+  filter(treatment == "control") 
+
+sex_long <- stage_long %>%
+  pivot_longer(
+    cols = c(male, female),
+    names_to = "sex",
+    values_to = "n"
+  )
+
+
+stage_counts <- sex_long %>%
+  group_by(release_temp, sex) %>%
+  summarise(n = sum(n, na.rm = TRUE), .groups = "drop")
+
+stage_counts$release_temp <- factor(stage_counts$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day8_consex_development <- ggplot(stage_counts,
+                                  aes(x = release_temp, y = n, fill = sex)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = sex_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Sex"
+  ) +
+  theme_bw() +
+   coord_cartesian(ylim = c(0, 30)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day8_consex_development
+
+
+day8_sex_plate_development <- plot_grid(day8_recsex_development, day8_consex_development, labels = c('A', 'B'), label_size = 12)
+day8_sex_plate_development
+#ggsave("day 8 sex plate development.jpg", plot = day8_sex_plate_development, width = 10, height = 5, units = "in")
+```
+
+
+```{r Day 12 Control Stage, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("FOVs.csv")
+
+head(data)
+
+data <- data %>%
+  mutate(
+    stage.5   = replace_na(stage.5, 0),
+    stage.4   = replace_na(stage.4, 0),
+    stage.2.3 = replace_na(stage.2.3, 0),
+    spores    = replace_na(spores, 0)
+  )
+
+stage_long <- data %>%
+  filter(dpr == "12") %>%
+  filter(treatment == "control") %>%
+  pivot_longer(
+    cols = c(spores, stage.2.3, stage.4, stage.5),
+    names_to = "stage",
+    values_to = "n"
+  ) %>%
+  mutate(
+    stage = recode(stage,
+      "spores" = "1",
+      "stage.2.3" = "2-3",
+      "stage.4" = "4",
+      "stage.5" = "5"
+    ),
+    stage = as.factor(stage)
+  )
+
+
+stage_counts <- stage_long %>%
+  group_by(release_temp, stage) %>%
+  summarise(n = sum(n), .groups = "drop")
+
+stage_colors <- c(
+  "1" = "#D81B60",
+  "2-3" = "#1E88E5",
+  "4" = "#FFC107",
+  "5" = "#004D40"
+)
+
+stage_counts$release_temp <- factor(stage_counts$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day12_constage_development <- ggplot(stage_counts,
+                                  aes(x = release_temp, y = n, fill = stage)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = stage_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Stage"
+  ) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0, 35)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day12_constage_development
+#ggsave("stage development.jpg", plot = stage_development, width = 7, height = 5, units = "in")
+```
+
+```{r Day 12 Recovery Stage, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("FOVs.csv")
+
+head(data)
+
+data <- data %>%
+  mutate(
+    stage.5   = replace_na(stage.5, 0),
+    stage.4   = replace_na(stage.4, 0),
+    stage.2.3 = replace_na(stage.2.3, 0),
+    spores    = replace_na(spores, 0)
+  )
+
+stage_long <- data %>%
+  filter(dpr == "12") %>%
+  filter(treatment == "recovery") %>%
+  pivot_longer(
+    cols = c(spores, stage.2.3, stage.4, stage.5),
+    names_to = "stage",
+    values_to = "n"
+  ) %>%
+  mutate(
+    stage = recode(stage,
+      "spores" = "1",
+      "stage.2.3" = "2-3",
+      "stage.4" = "4",
+      "stage.5" = "5"
+    ),
+    stage = as.factor(stage)
+  )
+
+
+stage_counts <- stage_long %>%
+  group_by(release_temp, stage) %>%
+  summarise(n = sum(n), .groups = "drop")
+
+stage_colors <- c(
+  "1" = "#D81B60",
+  "2-3" = "#1E88E5",
+  "4" = "#FFC107",
+  "5" = "#004D40"
+)
+
+stage_counts$release_temp <- factor(stage_counts$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day12_recstage_development <- ggplot(stage_counts,
+                                  aes(x = release_temp, y = n, fill = stage)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = stage_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Stage"
+  ) +
+  theme_bw() +
+   coord_cartesian(ylim = c(0, 35)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day12_recstage_development
+#ggsave("stage development.jpg", plot = stage_development, width = 7, height = 5, units = "in")
+```
+
+```{r day 12 cowplot, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+day12_stage_development <- plot_grid(day12_recstage_development, day12_constage_development, labels = c('A', 'B'), label_size = 12)
+day12_stage_development
+
+#ggsave("day 12 stage development.jpg", plot = day12_stage_development, width = 10, height = 5, units = "in")
+```
+
+```{r Day 12 Recovery Sex, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("FOVs.csv")
+
+head(data)
+
+data <- data %>%
+  mutate(
+    female   = replace_na(female, 0),
+    male   = replace_na(male, 0),
+    )
+stage_long <- data %>%
+  filter(dpr == "12") %>%
+  filter(treatment == "recovery") 
+
+sex_long <- stage_long %>%
+  pivot_longer(
+    cols = c(male, female),
+    names_to = "sex",
+    values_to = "n"
+  )
+
+
+stage_counts <- sex_long %>%
+  group_by(release_temp, sex) %>%
+  summarise(n = sum(n, na.rm = TRUE), .groups = "drop")
+
+stage_counts$release_temp <- factor(stage_counts$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day12_recsex_development <- ggplot(stage_counts,
+                                  aes(x = release_temp, y = n, fill = sex)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = sex_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Sex"
+  ) +
+  theme_bw() +
+   coord_cartesian(ylim = c(0, 25)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day12_recsex_development
+#ggsave("stage development.jpg", plot = stage_development, width = 7, height = 5, units = "in")
+```
+
+```{r Day 12 Control Sex, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("FOVs.csv")
+
+head(data)
+
+data <- data %>%
+  mutate(
+    female   = replace_na(female, 0),
+    male   = replace_na(male, 0),
+    )
+stage_long <- data %>%
+  filter(dpr == "12") %>%
+  filter(treatment == "control") 
+
+sex_long <- stage_long %>%
+  pivot_longer(
+    cols = c(male, female),
+    names_to = "sex",
+    values_to = "n"
+  )
+
+stage_counts <- sex_long %>%
+  group_by(release_temp, sex) %>%
+  summarise(n = sum(n, na.rm = TRUE), .groups = "drop")
+
+stage_counts$release_temp <- factor(stage_counts$release_temp,
+                                    levels = c("12","14","16","18","20","22","24"))
+
+day12_consex_development <- ggplot(stage_counts,
+                                   aes(x = release_temp, y = n, fill = sex)) +
+  geom_col(position = "dodge",
+           color = "black") +
+  scale_fill_manual(values = sex_colors) +
+  labs(
+    y = "Stage Count",
+    x = "Release Temperature",
+    fill = "Sex"
+  ) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0, 25)) +
+  theme(
+    axis.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+day12_consex_development
+#ggsave("stage development.jpg", plot = stage_development, width = 7, height = 5, units = "in")
+```
+
+```{r day 12 sex cowplot, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+day12_sexstage_development <- plot_grid(day12_recsex_development, day12_consex_development, labels = c('A', 'B'), label_size = 12)
+day12_sexstage_development
+#ggsave("day 12 sex development.jpg", plot = day12_sexstage_development, width = 10, height = 5, units = "in")
+```
+
+```{r Day 12 individual sex, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+data <- read.csv("kelprecovsize.csv")
+
+data$release_temp <- as.factor(data$release_temp)
+data$dpr <- as.factor(data$dpr)
+
+dpr_12 <- data %>%
+  filter(dpr == "12", stage == "4") %>%
+  mutate(
+    sex = recode(sex,
+      "m" = "male",
+      "f" = "female"
+    )
+  ) %>%
+  count(release_temp, sex, name = "n") %>%   # counts individuals per temp × sex
+  complete(release_temp, sex, fill = list(n = 0))
+
+day12ind_stage_development <- ggplot(
+  dpr_12,
+  aes(x = release_temp, y = n, fill = sex)
+) +
+  geom_col(position = "dodge", color = "black") +
+  scale_fill_manual(values = sex_colors) +
+  labs(
+    y = "Count",
+    x = "Temperature",
+    fill = "Sex"
+  )
+
+day12ind_stage_development
+#ggsave("day 12 individual stage development.jpg", plot = day12ind_stage_development, width = 7, height = 5, units = "in")
+```
